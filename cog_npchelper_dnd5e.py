@@ -7,11 +7,37 @@ from npchelper_dnd5e import NpcHelper_Dnd5e
 
 load_dotenv()
 DISCORD_ADMIN_ID = int(os.getenv("DISCORD_ADMIN_ID"))
+KEYWORD_LIST = ["adv", "dis"]
 
-class RollStringifier(d20.SimpleStringifier):
-    def _str_expression(self, node):
-        return f"{self._stringify(node.roll)}"
+def parse_arguments(args):
+    last_argument_index = len(args)
 
+    # Filter switches
+    switches = {}
+
+    if len(args) > 2:
+        for i in range(last_argument_index-1, 0, -2):
+            if args[i-1].startswith("-"):
+                last_argument_index = i - 1
+                switch = args[i-1][1:].lower()
+                value = args[i].lower()
+                switches[switch] = value
+
+    # Filter keywords
+    keywords = []
+
+    if len(args) > 1:
+        for i in range(last_argument_index-1, 0, -1):
+            if args[i].lower() in KEYWORD_LIST:
+                last_argument_index = i
+                keyword = args[i].lower()
+                keywords.append(keyword)
+            else:
+                break
+
+    # Return remaining args
+    filtered_args = args[:last_argument_index]
+    return filtered_args, keywords, switches
 
 class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
     def __init__(self, bot):
@@ -23,8 +49,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if context.author.id != DISCORD_ADMIN_ID:
             return
 
-        print("Channel = ", context.channel.id)
-        print("Server = ", context.guild.id)
+        await context.send("Channel = " + str(context.channel.id) + "\nServer = " + str(context.guild.id))
 
     @commands.command(name="npclist")
     async def list(self, context):
@@ -83,8 +108,13 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
     @commands.command(name="npc")
     async def action(self, context, character_name, *command):
-        action = command[0].lower()
-        key = " ".join(command[1:])
+        if len(command) < 2:
+            return
+
+        command_args, command_keywords, command_switches = parse_arguments(command)
+
+        action = command_args[0].lower()
+        key = " ".join(command_args[1:])
 
         if character_name == "*":
             result, characters = self.find_all_characters(context.channel.id, context.guild.id)
@@ -95,9 +125,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
             for character_dict in characters:
                 if "check".startswith(action):
-                    await self.execute_check(context, character_dict, key)
+                    await self.execute_check(context, character_dict, key, command_keywords, command_switches)
                 elif "save".startswith(action):
-                    await self.execute_save(context, character_dict, key)
+                    await self.execute_save(context, character_dict, key, command_keywords, command_switches)
         else:
             result, character_dict = self.get_character(character_name, context.channel.id, context.guild.id)
 
@@ -106,18 +136,21 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
                 return
 
             if "check".startswith(action):
-                await self.execute_check(context, character_dict, key)
+                result = await self.execute_check(context, character_dict, key, command_keywords, command_switches)
             elif "save".startswith(action):
-                await self.execute_save(context, character_dict, key)
+                result = await self.execute_save(context, character_dict, key, command_keywords, command_switches)
             elif "attack".startswith(action):
-                await self.execute_attack(context, character_dict, key)
+                result = await self.execute_attack(context, character_dict, key, command_keywords, command_switches)
             else:
                 await context.send("Error: Unknown action \"" + action + "\".")
                 return
 
+            if result is False:
+                return
+
         await context.message.delete()
 
-    async def execute_check(self, context, character_dict, check):
+    async def execute_check(self, context, character_dict, check, keywords=[], switches={}):
         character_id = character_dict["id"]
         character_name = character_dict["name"]
         character_portrait = character_dict["portrait"]
@@ -126,12 +159,19 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         if result is False:
             await context.send("Error: Can't find check \"" + check + "\" for character \"" + character_name + "\".")
-            return
+            return False
 
         check_name = check_dict["name"]
         check_modifier = check_dict["modifier"]
 
-        dice = "1d20+" + str(check_modifier)
+        if "adv" in keywords:
+            dice = "2d20kh1"
+        elif "dis" in keywords:
+            dice = "2d20kl1"
+        else:
+            dice = "1d20"
+
+        dice += "+" + str(check_modifier)
         roll = d20.roll(dice)
 
         embed = discord.Embed()
@@ -142,9 +182,15 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if character_portrait:
             embed.set_thumbnail(url=character_portrait)
 
-        await context.send(embed=embed)
+        if "adv" in keywords:
+            embed.description = "`Advantage`\n" + embed.description
+        elif "dis" in keywords:
+            embed.description = "`Disadvantage`\n" + embed.description
 
-    async def execute_save(self, context, character_dict, save):
+        await context.send(embed=embed)
+        return True
+
+    async def execute_save(self, context, character_dict, save, keywords=[], switches={}):
         character_id = character_dict["id"]
         character_name = character_dict["name"]
         character_portrait = character_dict["portrait"]
@@ -153,12 +199,19 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         if result is False:
             await context.send("Error: Can't find save \"" + save + "\" for character \"" + character_name + "\".")
-            return
+            return False
 
         save_name = save_dict["name"]
         save_modifier = save_dict["modifier"]
 
-        dice = "1d20+" + str(save_modifier)
+        if "adv" in keywords:
+            dice = "2d20kh1"
+        elif "dis" in keywords:
+            dice = "2d20kl1"
+        else:
+            dice = "1d20"
+
+        dice += "+" + str(save_modifier)
         roll = d20.roll(dice)
 
         embed = discord.Embed()
@@ -169,9 +222,15 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if character_portrait:
             embed.set_thumbnail(url=character_portrait)
 
-        await context.send(embed=embed)
+        if "adv" in keywords:
+            embed.description = "`Advantage`\n" + embed.description
+        elif "dis" in keywords:
+            embed.description = "`Disadvantage`\n" + embed.description
 
-    async def execute_attack(self, context, character_dict, attack):
+        await context.send(embed=embed)
+        return True
+
+    async def execute_attack(self, context, character_dict, attack, keywords=[], switches={}):
         character_id = character_dict["id"]
         character_name = character_dict["name"]
         character_portrait = character_dict["portrait"]
@@ -179,8 +238,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         result, attack_arr = self.get_attack(character_id, attack)
 
         if result is False:
-            await context.send("Error: Can't find attack \"" + " ".join(attack_name) + "\" for character \"" + character_name + "\".")
-            return
+            await context.send("Error: Can't find attack \"" + attack + "\" for character \"" + character_name + "\".")
+            return False
 
         embed_title = ""
         embed_description = ""
@@ -188,12 +247,12 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if len(attack_arr) == 1:
             attack_dict = attack_arr[0]
             embed_title = character_name + " attacks with a " + attack_dict["name"] + "!"
-            embed_description = await self.execute_attack_single(context, attack_dict)
+            embed_description = await self.execute_attack_single(context, attack_dict, keywords, switches)
         else:
             embed_title = character_name + " executes a multi-attack!"
             embed_description = ""
             for attack_dict in attack_arr:
-                attack_description = await self.execute_attack_single(context, attack_dict)
+                attack_description = await self.execute_attack_single(context, attack_dict, keywords, switches)
                 embed_description += attack_description + "\n"
 
         embed = discord.Embed()
@@ -204,15 +263,28 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if character_portrait:
             embed.set_thumbnail(url=character_portrait)
 
-        await context.send(embed=embed)
+        if "adv" in keywords:
+            embed.description = "`Advantage`\n" + embed.description
+        elif "dis" in keywords:
+            embed.description = "`Disadvantage`\n" + embed.description
 
-    async def execute_attack_single(self, context, attack_dict):
+        await context.send(embed=embed)
+        return True
+
+    async def execute_attack_single(self, context, attack_dict, keywords=[], switches={}):
         attack_name = attack_dict["name"]
         attack_hit = attack_dict["hit"]
         attack_damage = attack_dict["damage"]
 
         # Roll to hit
-        hit_dice = "1d20+" + str(attack_hit)
+        if "adv" in keywords:
+            hit_dice = "2d20kh1"
+        elif "dis" in keywords:
+            hit_dice = "2d20kl1"
+        else:
+            hit_dice = "1d20"
+
+        hit_dice += "+" + str(attack_hit)
         hit_roll = d20.roll(hit_dice)
 
         # Roll for damage
