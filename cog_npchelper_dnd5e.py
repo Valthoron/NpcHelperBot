@@ -344,7 +344,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
                 attack_text += "**Damage**: " + str(damage_roll) + "\n"
         else:
             if critical_hit:
-                attack_text += "**Critical Hit!**:\n"
+                attack_text += "**Critical Hit!**\n"
             elif critical_miss:
                 attack_text += "**Critical Miss!**\n"
 
@@ -355,7 +355,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
                 attack_text += "**Damage**: " + str(damage_roll) + "\n"
 
             if critical_hit:
-                attack_text += "**Critical**: `" + str(damage_roll.total * 2) + "`\n"
+                attack_text += "**Critical Damage**: `" + str(damage_roll.total * int(attack_critmultiplier)) + "`\n"
 
         return attack_text
 
