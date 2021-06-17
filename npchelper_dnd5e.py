@@ -52,6 +52,7 @@ class NpcHelper_Dnd5e:
         self.database.execute("DELETE FROM attacks WHERE character_id=:id", {"id": id})
 
         # Parse character sheet
+        system = sheet.get("system").first()
         character_name = sheet.get("name").first()
         portrait_url = sheet.get("portrait").first()
         abilities = sheet.get("Abilities")
@@ -59,10 +60,11 @@ class NpcHelper_Dnd5e:
         skills = sheet.get("Skills")
         attacks = sheet.get("Attacks")
 
-        self.database.execute("UPDATE characters SET name=:name, portrait=:portrait WHERE id=:id",
+        self.database.execute("UPDATE characters SET name=:name, system=:system, portrait=:portrait WHERE id=:id",
             {
                 "id": id,
                 "name": character_name,
+                "system": system,
                 "portrait": portrait_url
             })
 
@@ -93,7 +95,10 @@ class NpcHelper_Dnd5e:
         for skill in skills:
             skill_name = skill[0]
             skill_key = make_key(skill_name)
-            skill_modifier = skill[2]
+            if system == "dnd3.5":
+                skill_modifier = skill[3]
+            else:
+                skill_modifier = skill[2]
             self.database.execute("INSERT INTO checks (character_id, key, name, modifier) VALUES (:id, :key, :name, :modifier)",
             {
                 "id": id,
@@ -108,19 +113,35 @@ class NpcHelper_Dnd5e:
             attack_hit = attack[1]
             attack_damage = attack[2]
 
-            if len(attack) > 3:
-                attack_group = attack[3]
+            if system == "dnd5":
+                if len(attack) > 3:
+                    attack_group = attack[3]
+                else:
+                    attack_group = 0
+
+                attack_critrange = 20
+                attack_critmultiplier = 2
             else:
+                if len(attack) > 3:
+                    attack_critrange = attack[3]
+                    attack_critmultiplier = attack[4]
+                else:
+                    attack_critrange = 20
+                    attack_critmultiplier = 2
+
                 attack_group = 0
 
-            self.database.execute("INSERT INTO attacks (character_id, name, key, hit, damage, multigroup) VALUES (:id, :name, :key, :hit, :damage, :group)",
+
+            self.database.execute("INSERT INTO attacks (character_id, name, key, hit, damage, multigroup, critrange, critmultiplier) VALUES (:id, :name, :key, :hit, :damage, :group, :critrange, :critmultiplier)",
             {
                 "id": id,
                 "name": attack_name,
                 "key": attack_key,
                 "hit": attack_hit,
                 "damage": attack_damage,
-                "group": attack_group
+                "group": attack_group,
+                "critrange": attack_critrange,
+                "critmultiplier": attack_critmultiplier
             })
 
         # Finally commit
@@ -129,7 +150,7 @@ class NpcHelper_Dnd5e:
         return True
 
     def find_all_characters(self, channel, server):
-        rows = self.database.execute("SELECT id, name, portrait FROM characters WHERE server=:server AND channel=:channel",
+        rows = self.database.execute("SELECT id, name, system, portrait FROM characters WHERE server=:server AND channel=:channel",
             {
                 "server": server,
                 "channel": channel
@@ -138,14 +159,14 @@ class NpcHelper_Dnd5e:
         characters = []
 
         for row in rows:
-            characters.append({ "id": row["id"], "name": row["name"], "portrait": row["portrait"] })
+            characters.append({ "id": row["id"], "name": row["name"], "system": row["system"], "portrait": row["portrait"] })
 
         return (len(characters) > 0), characters
 
     def get_character(self, name, channel, server):
-        row = self.database.execute("SELECT id, name, portrait FROM characters WHERE name=:name AND server=:server AND channel=:channel",
+        row = self.database.execute("SELECT id, name, system, portrait FROM characters WHERE name LIKE :name AND server=:server AND channel=:channel",
             {
-                "name": name,
+                "name": name + "%",
                 "server": server,
                 "channel": channel
             }).fetchone()
@@ -153,10 +174,10 @@ class NpcHelper_Dnd5e:
         if row is None:
             return False, -1
 
-        return True, { "id": row["id"], "name": row["name"], "portrait": row["portrait"] }
+        return True, { "id": row["id"], "name": row["name"], "system": row["system"], "portrait": row["portrait"] }
 
     def get_character_by_id(self, id):
-        row = self.database.execute("SELECT id, name, portrait FROM characters WHERE id=:id",
+        row = self.database.execute("SELECT id, name, system, portrait FROM characters WHERE id=:id",
             {
                 "id": id
             }).fetchone()
@@ -164,7 +185,7 @@ class NpcHelper_Dnd5e:
         if row is None:
             return False, -1
 
-        return True, { "id": row["id"], "name": row["name"], "portrait": row["portrait"] }
+        return True, { "id": row["id"], "name": row["name"], "system": row["system"], "portrait": row["portrait"] }
 
     def get_check(self, id, name):
         key = make_key(name)
@@ -183,7 +204,7 @@ class NpcHelper_Dnd5e:
     def get_attack(self, id, name):
         key = make_key(name)
 
-        row = self.database.execute("SELECT name, hit, damage, multigroup FROM attacks WHERE character_id=:id AND key LIKE :key",
+        row = self.database.execute("SELECT name, hit, damage, multigroup, critrange, critmultiplier FROM attacks WHERE character_id=:id AND key LIKE :key",
             {
                 "id": id,
                 "key": key + "%"
@@ -195,9 +216,9 @@ class NpcHelper_Dnd5e:
         group = row["multigroup"]
 
         if group == 0:
-            return True, [{ "name": row["name"], "hit": row["hit"], "damage": row["damage"] }]
+            return True, [{ "name": row["name"], "hit": row["hit"], "damage": row["damage"], "critrange": row["critrange"], "critmultiplier": row["critmultiplier"] }]
 
-        rows = self.database.execute("SELECT name, hit, damage FROM attacks WHERE character_id=:id AND multigroup=:group",
+        rows = self.database.execute("SELECT name, hit, damage, critrange, critmultiplier FROM attacks WHERE character_id=:id AND multigroup=:group",
             {
                 "id": id,
                 "group": group
@@ -206,6 +227,6 @@ class NpcHelper_Dnd5e:
         all_attacks = []
 
         for row in rows:
-            all_attacks.append({ "name": row["name"], "hit": row["hit"], "damage": row["damage"] })
+            all_attacks.append({ "name": row["name"], "hit": row["hit"], "damage": row["damage"], "critrange": row["critrange"], "critmultiplier": row["critmultiplier"] })
 
         return True, all_attacks
