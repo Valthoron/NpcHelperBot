@@ -187,7 +187,13 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         elif "dis" in keywords:
             embed.description = "`Disadvantage`\n" + embed.description
 
-        await context.send(embed=embed)
+        sent_message: discord.Message = await context.send(embed=embed)
+
+        if roll.crit == d20.dice.CritType.CRIT:
+            await sent_message.add_reaction("\U00002764")
+        elif roll.crit == d20.dice.CritType.FAIL:
+            await sent_message.add_reaction("\U0001F622")
+
         return True
 
     async def execute_save(self, context, character_dict, save, keywords=[], switches={}):
@@ -227,10 +233,16 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         elif "dis" in keywords:
             embed.description = "`Disadvantage`\n" + embed.description
 
-        await context.send(embed=embed)
+        sent_message: discord.Message = await context.send(embed=embed)
+
+        if roll.crit == d20.dice.CritType.CRIT:
+            await sent_message.add_reaction("\U00002764")
+        elif roll.crit == d20.dice.CritType.FAIL:
+            await sent_message.add_reaction("\U0001F622")
+
         return True
 
-    async def execute_attack(self, context, character_dict, attack, keywords=[], switches={}):
+    async def execute_attack(self, context: commands.Context, character_dict, attack, keywords=[], switches={}):
         character_id = character_dict["id"]
         character_name = character_dict["name"]
         character_portrait = character_dict["portrait"]
@@ -244,15 +256,18 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         embed_title = ""
         embed_description = ""
 
+        critical_hit = False
+        critical_miss = False
+
         if len(attack_arr) == 1:
             attack_dict = attack_arr[0]
             embed_title = character_name + " attacks with a " + attack_dict["name"] + "!"
-            embed_description = await self.execute_attack_single(context, character_dict, attack_dict, keywords=keywords, switches=switches)
+            embed_description, critical_hit, critical_miss = await self.execute_attack_single(context, character_dict, attack_dict, keywords=keywords, switches=switches)
         else:
             embed_title = character_name + " executes a multi-attack!"
             embed_description = ""
             for attack_dict in attack_arr:
-                attack_description = await self.execute_attack_single(context, character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
+                attack_description, critical_hit, critical_miss = await self.execute_attack_single(context, character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
                 embed_description += attack_description + "\n"
 
         embed = discord.Embed()
@@ -268,7 +283,13 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         elif "dis" in keywords:
             embed.description = "`Disadvantage`\n" + embed.description
 
-        await context.send(embed=embed)
+        sent_message: discord.Message = await context.send(embed=embed)
+
+        if critical_hit:
+            await sent_message.add_reaction("\U00002764")
+        elif critical_miss:
+            await sent_message.add_reaction("\U0001F622")
+
         return True
 
     async def execute_attack_single(self, context, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
@@ -357,7 +378,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
             if critical_hit:
                 attack_text += "**Critical Damage**: `" + str(damage_roll.total * int(attack_critmultiplier)) + "`\n"
 
-        return attack_text
+        return attack_text, critical_hit, critical_miss
 
 def setup(bot):
     bot.add_cog(Cog_NpcHelper_Dnd5e(bot))
