@@ -29,16 +29,16 @@ class NpcHelper_Dnd5e:
         self.update_character_by_id(character_id)
         return self.get_character_by_id(character_id)
 
-    def remove_character(self, id):
-        self.database.execute("DELETE FROM characters WHERE id=:id", {"id": id})
-        self.database.execute("DELETE FROM checks WHERE character_id=:id", {"id": id})
+    def remove_character(self, cid):
+        self.database.execute("DELETE FROM characters WHERE id=:id", {"id": cid})
+        self.database.execute("DELETE FROM checks WHERE character_id=:id", {"id": cid})
         self.database_connection.commit()
 
-    def update_character_by_id(self, id):
+    def update_character_by_id(self, cid):
         # Get character sheet
         row = self.database.execute("SELECT * FROM characters WHERE id=:id",
             {
-                "id": id
+                "id": cid
             }
             ).fetchone()
 
@@ -48,8 +48,8 @@ class NpcHelper_Dnd5e:
         sheet = self.gsheet_service.open_by_key(row["gsheet"]).get_worksheet(0)
 
         # Tabula rasa
-        self.database.execute("DELETE FROM checks WHERE character_id=:id", {"id": id})
-        self.database.execute("DELETE FROM attacks WHERE character_id=:id", {"id": id})
+        self.database.execute("DELETE FROM checks WHERE character_id=:id", {"id": cid})
+        self.database.execute("DELETE FROM attacks WHERE character_id=:id", {"id": cid})
 
         # Parse character sheet
         system = sheet.get("system").first()
@@ -62,7 +62,7 @@ class NpcHelper_Dnd5e:
 
         self.database.execute("UPDATE characters SET name=:name, system=:system, portrait=:portrait WHERE id=:id",
             {
-                "id": id,
+                "id": cid,
                 "name": character_name,
                 "system": system,
                 "portrait": portrait_url
@@ -74,7 +74,7 @@ class NpcHelper_Dnd5e:
             ability_modifier = ability[2]
             self.database.execute("INSERT INTO checks (character_id, key, name, modifier) VALUES (:id, :key, :name, :modifier)",
             {
-                "id": id,
+                "id": cid,
                 "key": ability_key,
                 "name": ability_name,
                 "modifier": ability_modifier
@@ -86,7 +86,7 @@ class NpcHelper_Dnd5e:
             save_modifier = save[2]
             self.database.execute("INSERT INTO checks (character_id, key, name, modifier) VALUES (:id, :key, :name, :modifier)",
             {
-                "id": id,
+                "id": cid,
                 "key": save_key,
                 "name": save_name,
                 "modifier": save_modifier
@@ -101,7 +101,7 @@ class NpcHelper_Dnd5e:
                 skill_modifier = skill[2]
             self.database.execute("INSERT INTO checks (character_id, key, name, modifier) VALUES (:id, :key, :name, :modifier)",
             {
-                "id": id,
+                "id": cid,
                 "key": skill_key,
                 "name": skill_name,
                 "modifier": skill_modifier
@@ -134,7 +134,7 @@ class NpcHelper_Dnd5e:
 
             self.database.execute("INSERT INTO attacks (character_id, name, key, hit, damage, multigroup, critrange, critmultiplier) VALUES (:id, :name, :key, :hit, :damage, :group, :critrange, :critmultiplier)",
             {
-                "id": id,
+                "id": cid,
                 "name": attack_name,
                 "key": attack_key,
                 "hit": attack_hit,
@@ -176,10 +176,10 @@ class NpcHelper_Dnd5e:
 
         return True, { "id": row["id"], "name": row["name"], "system": row["system"], "portrait": row["portrait"] }
 
-    def get_character_by_id(self, id):
+    def get_character_by_id(self, cid):
         row = self.database.execute("SELECT id, name, system, portrait FROM characters WHERE id=:id",
             {
-                "id": id
+                "id": cid
             }).fetchone()
 
         if row is None:
@@ -187,12 +187,12 @@ class NpcHelper_Dnd5e:
 
         return True, { "id": row["id"], "name": row["name"], "system": row["system"], "portrait": row["portrait"] }
 
-    def get_check(self, id, name):
+    def get_check(self, cid, name):
         key = make_key(name)
 
         row = self.database.execute("SELECT name, modifier FROM checks WHERE character_id=:id AND key LIKE :key",
             {
-                "id": id,
+                "id": cid,
                 "key": key + "%"
             }).fetchone()
 
@@ -201,12 +201,12 @@ class NpcHelper_Dnd5e:
 
         return True, { "name": row["name"], "modifier": row["modifier"] }
 
-    def get_attack(self, id, name):
+    def get_attack(self, cid, name):
         key = make_key(name)
 
         row = self.database.execute("SELECT name, hit, damage, multigroup, critrange, critmultiplier FROM attacks WHERE character_id=:id AND key LIKE :key",
             {
-                "id": id,
+                "id": cid,
                 "key": key + "%"
             }).fetchone()
 
@@ -220,7 +220,7 @@ class NpcHelper_Dnd5e:
 
         rows = self.database.execute("SELECT name, hit, damage, critrange, critmultiplier FROM attacks WHERE character_id=:id AND multigroup=:group",
             {
-                "id": id,
+                "id": cid,
                 "group": group
             })
 
