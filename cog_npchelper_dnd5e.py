@@ -262,12 +262,12 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         if len(attack_arr) == 1:
             attack_dict = attack_arr[0]
             embed_title = character_name + " attacks with a " + attack_dict["name"] + "!"
-            embed_description, critical_hit, critical_miss = await self.execute_attack_single(context, character_dict, attack_dict, keywords=keywords, switches=switches)
+            embed_description, critical_hit, critical_miss = await self.execute_attack_single(character_dict, attack_dict, keywords=keywords, switches=switches)
         else:
             embed_title = character_name + " executes a multi-attack!"
             embed_description = ""
             for attack_dict in attack_arr:
-                attack_description, critical_hit, critical_miss = await self.execute_attack_single(context, character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
+                attack_description, critical_hit, critical_miss = await self.execute_attack_single(character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
                 embed_description += attack_description + "\n"
 
         embed = discord.Embed()
@@ -292,23 +292,24 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         return True
 
-    async def execute_attack_single(self, context, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
+    async def execute_attack_single(self, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
         character_system = character_dict["system"]
 
+        if character_system == "dnd5":
+            return self.execute_attack_single_5e(character_dict, attack_dict, include_name, keywords, switches)
+        else:
+            return self.execute_attack_single_35e(character_dict, attack_dict, include_name, keywords, switches)
+    
+    def execute_attack_single_5e(self, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
         attack_name = attack_dict["name"]
         attack_hit = attack_dict["hit"]
         attack_damage = attack_dict["damage"]
-        attack_critrange = attack_dict["critrange"]
-        attack_critmultiplier = attack_dict["critmultiplier"]
 
         # Roll to hit
-        if character_system == "dnd5":
-            if "adv" in keywords:
-                hit_dice = "2d20kh1"
-            elif "dis" in keywords:
-                hit_dice = "2d20kl1"
-            else:
-                hit_dice = "1d20"
+        if "adv" in keywords:
+            hit_dice = "2d20kh1"
+        elif "dis" in keywords:
+            hit_dice = "2d20kl1"
         else:
             hit_dice = "1d20"
 
@@ -318,33 +319,21 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         # Check for critical hit
         critical_hit = False
         critical_miss = False
-        confirm_roll = None
 
-        if character_system == "dnd5":
-            # Critical on a natural 20
-            if hit_roll.crit == d20.dice.CritType.CRIT:
-                critical_hit = True
-            elif hit_roll.crit == d20.dice.CritType.FAIL:
-                critical_miss = True
-        else:
-            # Critical if roll is above threat threshold, also confirm
-            d20_value = d20.utils.leftmost(hit_roll.expr).total
-            if d20_value >= int(attack_critrange):
-                critical_hit = True
-                confirm_roll = d20.roll(hit_dice)
-            elif d20_value == 1:
-                critical_miss = True
-                confirm_roll = d20.roll(hit_dice)
+        # Critical on a natural 20
+        if hit_roll.crit == d20.dice.CritType.CRIT:
+            critical_hit = True
+        elif hit_roll.crit == d20.dice.CritType.FAIL:
+            critical_miss = True
 
         # Roll for damage
         damage_dice = attack_damage
 
         if critical_hit:
-            if character_system == "dnd5":
-                # Double leftmost dice
-                dice_parts = damage_dice.split("d", 1)
-                dice_parts[0] = str(int(dice_parts[0])*2)
-                damage_dice = "d".join(dice_parts)
+            # Double leftmost dice
+            dice_parts = damage_dice.split("d", 1)
+            dice_parts[0] = str(int(dice_parts[0])*2)
+            damage_dice = "d".join(dice_parts)
 
         damage_roll = d20.roll(damage_dice)
 
@@ -356,27 +345,66 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         attack_text += "**To Hit**: " + str(hit_roll) + "\n"
 
-        if character_system == "dnd5":
-            if critical_hit:
-                attack_text += "**Damage (CRIT!)**: " + str(damage_roll) + "\n"
-            elif critical_miss:
-                attack_text += "**Miss!**\n"
-            else:
-                attack_text += "**Damage**: " + str(damage_roll) + "\n"
+        if critical_hit:
+            attack_text += "**Damage (CRIT!)**: " + str(damage_roll) + "\n"
+        elif critical_miss:
+            attack_text += "**Miss!**\n"
         else:
-            if critical_hit:
-                attack_text += "**Critical Hit!**\n"
-            elif critical_miss:
-                attack_text += "**Critical Miss!**\n"
+            attack_text += "**Damage**: " + str(damage_roll) + "\n"
 
-            if critical_hit or critical_miss:
-                attack_text += "**Confirm**: " + str(confirm_roll) + "\n"
+        return attack_text, critical_hit, critical_miss
 
-            if not critical_miss:
-                attack_text += "**Damage**: " + str(damage_roll) + "\n"
+    def execute_attack_single_35e(self, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
+        attack_name = attack_dict["name"]
+        attack_hit = attack_dict["hit"]
+        attack_damage = attack_dict["damage"]
+        attack_critrange = attack_dict["critrange"]
+        attack_critmultiplier = attack_dict["critmultiplier"]
 
-            if critical_hit:
-                attack_text += "**Critical Damage**: `" + str(damage_roll.total * int(attack_critmultiplier)) + "`\n"
+        # Roll to hit
+        hit_dice = "1d20+" + str(attack_hit)
+        hit_roll = d20.roll(hit_dice)
+
+        # Check for critical hit
+        critical_hit = False
+        critical_miss = False
+        confirm_roll = None
+
+        # Critical if roll is above threat threshold, also confirm
+        d20_value = d20.utils.leftmost(hit_roll.expr).total
+        if d20_value >= int(attack_critrange):
+            critical_hit = True
+            confirm_roll = d20.roll(hit_dice)
+        elif d20_value == 1:
+            critical_miss = True
+            confirm_roll = d20.roll(hit_dice)
+
+        # Roll for damage
+        damage_dice = attack_damage
+
+        damage_roll = d20.roll(damage_dice)
+
+        # Build attack text
+        attack_text = ""
+
+        if include_name:
+            attack_text += "**" + attack_name + "**\n"
+
+        attack_text += "**To Hit**: " + str(hit_roll) + "\n"
+
+        if critical_hit:
+            attack_text += "**Critical Hit!**\n"
+        elif critical_miss:
+            attack_text += "**Critical Miss!**\n"
+
+        if critical_hit or critical_miss:
+            attack_text += "**Confirm**: " + str(confirm_roll) + "\n"
+
+        if not critical_miss:
+            attack_text += "**Damage**: " + str(damage_roll) + "\n"
+
+        if critical_hit:
+            attack_text += "**Critical Damage**: `" + str(damage_roll.total * int(attack_critmultiplier)) + "`\n"
 
         return attack_text, critical_hit, critical_miss
 
