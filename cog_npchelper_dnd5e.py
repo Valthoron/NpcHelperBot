@@ -297,8 +297,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         if character_system == "dnd5":
             return self.execute_attack_single_5e(character_dict, attack_dict, include_name, keywords, switches)
-        else:
-            return self.execute_attack_single_35e(character_dict, attack_dict, include_name, keywords, switches)
+        
+        return self.execute_attack_single_35e(character_dict, attack_dict, include_name, keywords, switches)
     
     def execute_attack_single_5e(self, character_dict, attack_dict, include_name=False, keywords=[], switches={}):
         attack_name = attack_dict["name"]
