@@ -266,9 +266,14 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
         else:
             embed_title = character_name + " executes a multi-attack!"
             embed_description = ""
+            critical_hit = False
+            critical_miss = False
+
             for attack_dict in attack_arr:
-                attack_description, critical_hit, critical_miss = await self.execute_attack_single(character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
+                attack_description, critical_hit_one, critical_miss_one = await self.execute_attack_single(character_dict, attack_dict, include_name=True, keywords=keywords, switches=switches)
                 embed_description += attack_description + "\n"
+                critical_hit |= critical_hit_one
+                critical_miss |= critical_miss_one
 
         embed = discord.Embed()
         embed.title = embed_title
@@ -287,7 +292,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
         if critical_hit:
             await sent_message.add_reaction("\U00002764")
-        elif critical_miss:
+        
+        if critical_miss:
             await sent_message.add_reaction("\U0001F622")
 
         return True
