@@ -1,6 +1,8 @@
 # NPC Helper Bot
 This is a Discord bot that makes certain party NPC actions easier to use, especially with multiple characters present.
 
+[![CodeFactor](https://www.codefactor.io/repository/github/valthoron/npchelperbot/badge)](https://www.codefactor.io/repository/github/valthoron/npchelperbot)
+
 ## Dependencies
 - Python 3.9.5
 - [discord.py](https://github.com/Rapptz/discord.py) 1.7.3
