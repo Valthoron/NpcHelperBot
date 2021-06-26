@@ -108,7 +108,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
 
     @commands.command(name="npc")
     async def action(self, context, character_name, *command):
-        if len(command) < 2:
+        if len(command) < 1:
             return
 
         command_args, command_keywords, command_switches = parse_arguments(command)
@@ -128,6 +128,11 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
                     await self.execute_check(context, character_dict, key, command_keywords, command_switches)
                 elif "save".startswith(action):
                     await self.execute_save(context, character_dict, key, command_keywords, command_switches)
+                elif "initiative".startswith(action):
+                    await self.execute_initiative(context, character_dict, key, command_keywords, command_switches)
+                else:
+                    await context.send("Error: Unknown action \"" + action + "\".")
+                    return
         else:
             result, character_dict = self.get_character(character_name, context.channel.id, context.guild.id)
 
@@ -141,6 +146,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
                 result = await self.execute_save(context, character_dict, key, command_keywords, command_switches)
             elif "attack".startswith(action):
                 result = await self.execute_attack(context, character_dict, key, command_keywords, command_switches)
+            elif "initiative".startswith(action):
+                result = await self.execute_initiative(context, character_dict, key, command_keywords, command_switches)
             else:
                 await context.send("Error: Unknown action \"" + action + "\".")
                 return
@@ -239,6 +246,42 @@ class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
             await sent_message.add_reaction("\U00002764")
         elif roll.crit == d20.dice.CritType.FAIL:
             await sent_message.add_reaction("\U0001F622")
+
+        return True
+
+    async def execute_initiative(self, context, character_dict, save, keywords=[], switches={}):
+        character_id = character_dict["id"]
+        character_name = character_dict["name"]
+        character_portrait = character_dict["portrait"]
+
+        _, check_dict = self.get_check(character_id, "bonus_initiative")
+
+        check_modifier = check_dict["modifier"]
+
+        if "adv" in keywords:
+            dice = "2d20kh1"
+        elif "dis" in keywords:
+            dice = "2d20kl1"
+        else:
+            dice = "1d20"
+
+        dice += "+" + str(check_modifier)
+        roll = d20.roll(dice)
+
+        embed = discord.Embed()
+        embed.title = character_name + " rolls for initiative!"
+        embed.description = str(roll)
+        embed.color = 0xff8800
+
+        if character_portrait:
+            embed.set_thumbnail(url=character_portrait)
+
+        if "adv" in keywords:
+            embed.description = "`Advantage`\n" + embed.description
+        elif "dis" in keywords:
+            embed.description = "`Disadvantage`\n" + embed.description
+
+        await context.send(embed=embed)
 
         return True
 

@@ -55,6 +55,7 @@ class NpcHelper_Dnd5e:
         system = sheet.get("system").first()
         character_name = sheet.get("name").first()
         portrait_url = sheet.get("portrait").first()
+        initiative = sheet.get("initiative").first()
         abilities = sheet.get("Abilities")
         saves = sheet.get("Saves")
         skills = sheet.get("Skills")
@@ -66,6 +67,14 @@ class NpcHelper_Dnd5e:
                 "name": character_name,
                 "system": system,
                 "portrait": portrait_url
+            })
+        
+        self.database.execute("INSERT INTO checks (character_id, key, name, modifier) VALUES (:id, :key, :name, :modifier)",
+            {
+                "id": cid,
+                "key": "bonus_initiative",
+                "name": "Initiative",
+                "modifier": initiative
             })
 
         for ability in abilities:
