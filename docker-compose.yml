@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+    mongo:
+        image: mongo
+        container_name: mongo
+        restart: always
+        command: [--auth]
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+            - MONGO_INITDB_DATABASE=npchelper
+        ports:
+            - 58017:27017
+        volumes:
+            - npchelper-mongo-data:/data/db
+            - npchelper-mongo-config:/data/configdb
+        networks:
+            - npchelper-network
+
+    mongo-express:
+        image: mongo-express
+        container_name: mongo-express
+        restart: always
+        depends_on:
+            - mongo
+        environment:
+            - ME_CONFIG_MONGODB_SERVER=mongo
+            - ME_CONFIG_MONGODB_PORT=27017
+            - ME_CONFIG_MONGODB_ENABLE_ADMIN=false
+            - ME_CONFIG_MONGODB_AUTH_DATABASE=npchelper
+            - ME_CONFIG_MONGODB_AUTH_USERNAME=${MONGO_BOT_USER}
+            - ME_CONFIG_MONGODB_AUTH_PASSWORD=${MONGO_BOT_PASSWORD}
+            - ME_CONFIG_BASICAUTH_USERNAME=${MONGOEXPRESS_LOGIN}
+            - ME_CONFIG_BASICAUTH_PASSWORD=${MONGOEXPRESS_PASSWORD}
+        ports:
+            - 58081:8081
+        networks:
+            - npchelper-network
+
+volumes:
+    npchelper-mongo-data:
+        name: npchelper-mongo-data
+    npchelper-mongo-config:
+        name: npchelper-mongo-config
+
+networks:
+    npchelper-network:
+        driver: bridge
+        name: npchelper-network

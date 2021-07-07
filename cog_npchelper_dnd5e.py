@@ -1,3 +1,4 @@
+from bot import NpcHelper
 import d20
 import discord
 import os
@@ -41,7 +42,7 @@ def parse_arguments(args):
 
 class Cog_NpcHelper_Dnd5e(commands.Cog, NpcHelper_Dnd5e):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: NpcHelper = bot
         NpcHelper_Dnd5e.__init__(self)
 
     @commands.command(name="npcdebug")
