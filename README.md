@@ -3,10 +3,13 @@ This is a Discord bot that makes certain party NPC actions easier to use, especi
 
 [![CodeFactor](https://www.codefactor.io/repository/github/valthoron/npchelperbot/badge)](https://www.codefactor.io/repository/github/valthoron/npchelperbot)
 
+NPC Helper Bot gets inspiration and uses snippets of code from [Avrae](https://avrae.io/), a great Discord bot with many features for playing Dungeons & Dragons 5th Edition online. It's also [open-source](https://github.com/avrae/avrae), go check it out!
+
 ## Dependencies
 - Python 3.9.5
 - [discord.py](https://github.com/Rapptz/discord.py) 1.7.3
 - [d20](https://github.com/avrae/d20) 1.1.0
+- [Motor](https://github.com/mongodb/motor/) 2.4.0
 - [Google Spreadsheets Python API](https://github.com/burnash/gspread) 3.7.0
 - [python-dotenv](https://github.com/theskumar/python-dotenv) 0.17.1
 
