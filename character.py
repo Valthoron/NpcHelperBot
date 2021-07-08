@@ -75,7 +75,10 @@ class Character:
         for save in saves:
             new_save = {}
             new_save["name"] = save[0]
-            new_save["modifier"] = int(save[2])
+            if system == "dnd5":
+                new_save["modifier"] = int(save[2])
+            else:
+                new_save["modifier"] = int(save[3])
             new_save["keywords"] = []
             parse_advantage(initiative, 3, new_save["keywords"])
             self.saves.append(new_save)
