@@ -388,8 +388,25 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return attack_text, critical_hit, critical_miss
 
     def execute_attack_single_35e(self, character: Character, attack, include_name=False, keywords=[], switches={}):
+        bonus_attack = 0
+        bonus_damage = 0
+        extra_text = []
+
+        if "pow" in switches:
+            # Power attack
+            power_attack_points = max(int(switches["pow"]), 0)
+            power_attack_attack = -1 * power_attack_points
+            power_attack_damage = (power_attack_points * 2) if "2h" in keywords else (power_attack_points)
+            extra_text.append(f"_Power Attack: {power_attack_attack} to hit, +{power_attack_damage} to damage_")
+            bonus_attack += power_attack_attack
+            bonus_damage += power_attack_damage
+
         # Roll to hit
-        hit_dice = "1d20+" + str(attack["hit"])
+        hit_dice = f"1d20+{attack['hit']}"
+
+        if bonus_attack != 0:
+            hit_dice += f"+{bonus_attack}"
+
         hit_roll = d20.roll(hit_dice)
 
         # Check for critical hit
@@ -408,6 +425,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
 
         # Roll for damage
         damage_dice = attack["damage"]
+
+        if bonus_damage != 0:
+            damage_dice += f"+{bonus_damage}"
 
         damage_roll = d20.roll(damage_dice)
 
@@ -433,6 +453,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if critical_hit:
             damage_critical = damage_roll.total * attack["critmultiplier"]
             attack_text += f"**Critical Damage**: `{str(damage_critical)}`\n"
+        
+        for extra in extra_text:
+            attack_text += f"\n{extra}"
 
         return attack_text, critical_hit, critical_miss
 

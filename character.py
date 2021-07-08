@@ -96,6 +96,7 @@ class Character:
 
         for attack in attacks:
             new_attack = {}
+            
             new_attack["name"] = attack[0]
             new_attack["hit"] = int(attack[1])
             new_attack["damage"] = attack[2]
@@ -116,6 +117,10 @@ class Character:
                     new_attack_critmultiplier = int(attack[4])
 
                 parse_advantage(initiative, 5, new_attack["keywords"])
+
+                if new_attack["name"].lower().endswith("[2h]"):
+                    new_attack["name"] = new_attack["name"][:-4].strip()
+                    new_attack["keywords"].append("2h")
 
             new_attack["group"] = new_attack_group
             new_attack["critrange"] = new_attack_critrange
