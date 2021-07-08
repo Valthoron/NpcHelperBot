@@ -47,6 +47,16 @@ def parse_arguments(args):
     return filtered_args, keywords, switches
 
 
+def parse_advantage(keywords: list) -> int:
+    if "adv" in keywords and "dis" not in keywords:
+        return 1
+
+    if "dis" in keywords and "adv" not in keywords:
+        return -1
+
+    return 0
+
+
 class Cog_NpcHelper_Dnd5e(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -156,12 +166,13 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if check is None:
             await context.send(f"Error: Can't find check \"{check_name}\" for {character.name}.")
             return False
-        
+
         keywords.extend(check["keywords"])
 
-        if "adv" in keywords:
+        advantage = parse_advantage(keywords)
+        if advantage > 0:
             dice = "2d20kh1"
-        elif "dis" in keywords:
+        elif advantage < 0:
             dice = "2d20kl1"
         else:
             dice = "1d20"
@@ -177,9 +188,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if character.portrait:
             embed.set_thumbnail(url=character.portrait)
 
-        if "adv" in keywords:
+        if advantage > 0:
             embed.description = "`Advantage`\n" + embed.description
-        elif "dis" in keywords:
+        elif advantage < 0:
             embed.description = "`Disadvantage`\n" + embed.description
 
         sent_message: discord.Message = await context.send(embed=embed)
@@ -197,12 +208,13 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if save is None:
             await context.send(f"Error: Can't find save \"{save_name}\" for {character.name}.")
             return False
-        
+
         keywords.extend(save["keywords"])
 
-        if "adv" in keywords:
+        advantage = parse_advantage(keywords)
+        if advantage > 0:
             dice = "2d20kh1"
-        elif "dis" in keywords:
+        elif advantage < 0:
             dice = "2d20kl1"
         else:
             dice = "1d20"
@@ -218,9 +230,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if character.portrait:
             embed.set_thumbnail(url=character.portrait)
 
-        if "adv" in keywords:
+        if advantage > 0:
             embed.description = "`Advantage`\n" + embed.description
-        elif "dis" in keywords:
+        elif advantage < 0:
             embed.description = "`Disadvantage`\n" + embed.description
 
         sent_message: discord.Message = await context.send(embed=embed)
@@ -235,9 +247,10 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
     async def execute_initiative(self, context, character: Character, keywords=[], switches={}):
         keywords.extend(character.initiative["keywords"])
 
-        if "adv" in keywords:
+        advantage = parse_advantage(keywords)
+        if advantage > 0:
             dice = "2d20kh1"
-        elif "dis" in keywords:
+        elif advantage < 0:
             dice = "2d20kl1"
         else:
             dice = "1d20"
@@ -253,9 +266,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if character.portrait:
             embed.set_thumbnail(url=character.portrait)
 
-        if "adv" in keywords:
+        if advantage > 0:
             embed.description = "`Advantage`\n" + embed.description
-        elif "dis" in keywords:
+        elif advantage < 0:
             embed.description = "`Disadvantage`\n" + embed.description
 
         await context.send(embed=embed)
@@ -299,9 +312,10 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if character.portrait:
             embed.set_thumbnail(url=character.portrait)
 
-        if "adv" in keywords:
+        advantage = parse_advantage(keywords)
+        if advantage > 0:
             embed.description = "`Advantage`\n" + embed.description
-        elif "dis" in keywords:
+        elif advantage < 0:
             embed.description = "`Disadvantage`\n" + embed.description
 
         sent_message: discord.Message = await context.send(embed=embed)
@@ -323,10 +337,11 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return self.execute_attack_single_35e(character, attack, include_name, keywords, switches)
 
     def execute_attack_single_5e(self, character: Character, attack, include_name=False, keywords=[], switches={}):
-       # Roll to hit
-        if "adv" in keywords:
+        # Roll to hit
+        advantage = parse_advantage(keywords)
+        if advantage > 0:
             hit_dice = "2d20kh1"
-        elif "dis" in keywords:
+        elif advantage < 0:
             hit_dice = "2d20kl1"
         else:
             hit_dice = "1d20"
