@@ -156,6 +156,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if check is None:
             await context.send(f"Error: Can't find check \"{check_name}\" for {character.name}.")
             return False
+        
+        keywords.extend(check["keywords"])
 
         if "adv" in keywords:
             dice = "2d20kh1"
@@ -195,6 +197,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if save is None:
             await context.send(f"Error: Can't find save \"{save_name}\" for {character.name}.")
             return False
+        
+        keywords.extend(save["keywords"])
 
         if "adv" in keywords:
             dice = "2d20kh1"
@@ -229,6 +233,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return True
 
     async def execute_initiative(self, context, character: Character, keywords=[], switches={}):
+        keywords.extend(character.initiative["keywords"])
+
         if "adv" in keywords:
             dice = "2d20kh1"
         elif "dis" in keywords:
@@ -236,7 +242,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         else:
             dice = "1d20"
 
-        dice += "+" + str(character.initiative)
+        dice += "+" + str(character.initiative["modifier"])
         roll = d20.roll(dice)
 
         embed = discord.Embed()
@@ -309,6 +315,8 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return True
 
     async def execute_attack_single(self, character: Character, attack, include_name=False, keywords=[], switches={}):
+        keywords.extend(attack["keywords"])
+
         if character.system == "dnd5":
             return self.execute_attack_single_5e(character, attack, include_name, keywords, switches)
 
@@ -376,7 +384,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
 
         # Critical if roll is above threat threshold, also confirm
         d20_value = d20.utils.leftmost(hit_roll.expr).total
-        if d20_value >= int(attack["critrange"]):
+        if d20_value >= attack["critrange"]:
             critical_hit = True
             confirm_roll = d20.roll(hit_dice)
         elif d20_value == 1:
@@ -408,7 +416,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
             attack_text += f"**Damage**: {str(damage_roll)}\n"
 
         if critical_hit:
-            damage_critical = damage_roll.total * int(attack["critmultiplier"])
+            damage_critical = damage_roll.total * attack["critmultiplier"]
             attack_text += f"**Critical Damage**: `{str(damage_critical)}`\n"
 
         return attack_text, critical_hit, critical_miss

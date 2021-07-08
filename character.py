@@ -9,6 +9,15 @@ from pymongo.collection import Collection
 from google_sheet import GoogleSheet
 
 
+def parse_advantage(cells: list, column: int, block: list):
+    if len(cells) > column:
+        advantage = int(cells[column])
+        if advantage > 0:
+            block.append("adv")
+        elif advantage < 0:
+            block.append("dis")
+
+
 class Character:
     def __init__(self):
         self._id = None
@@ -18,7 +27,7 @@ class Character:
         self.system = ""
         self.name = ""
         self.portrait = ""
-        self.initiative: int = 0
+        self.initiative = {}
         self.abilities = []
         self.saves = []
         self.skills = []
@@ -34,7 +43,7 @@ class Character:
         system = sheet.get("system").first()
         name = sheet.get("name").first()
         portrait = sheet.get("portrait").first()
-        initiative = sheet.get("initiative").first()
+        initiative = sheet.get("initiative")[0]
         abilities = sheet.get("Abilities")
         saves = sheet.get("Saves")
         skills = sheet.get("Skills")
@@ -44,7 +53,12 @@ class Character:
         self.system = system
         self.name = name
         self.portrait = portrait
-        self.initiative = int(initiative)
+
+        self.initiative = {}
+        self.initiative["modifier"] = int(initiative[0])
+        self.initiative["keywords"] = []
+        parse_advantage(initiative, 1, self.initiative["keywords"])
+
         self.abilities = []
         self.saves = []
         self.skills = []
@@ -53,48 +67,57 @@ class Character:
         for ability in abilities:
             new_ability = {}
             new_ability["name"] = ability[0]
-            new_ability["modifier"] = ability[2]
+            new_ability["modifier"] = int(ability[2])
+            new_ability["keywords"] = []
+            parse_advantage(initiative, 3, new_ability["keywords"])
             self.abilities.append(new_ability)
 
         for save in saves:
             new_save = {}
             new_save["name"] = save[0]
-            new_save["modifier"] = save[2]
+            new_save["modifier"] = int(save[2])
+            new_save["keywords"] = []
+            parse_advantage(initiative, 3, new_save["keywords"])
             self.saves.append(new_save)
 
         for skill in skills:
             new_skill = {}
             new_skill["name"] = skill[0]
             if system == "dnd5":
-                new_skill["modifier"] = skill[2]
+                new_skill["modifier"] = int(skill[2])
             else:
-                new_skill["modifier"] = skill[3]
+                new_skill["modifier"] = int(skill[3])
+            new_skill["keywords"] = []
+            parse_advantage(initiative, 3, new_skill["keywords"])
             self.skills.append(new_skill)
 
         for attack in attacks:
             new_attack = {}
             new_attack["name"] = attack[0]
-            new_attack["hit"] = attack[1]
+            new_attack["hit"] = int(attack[1])
             new_attack["damage"] = attack[2]
+            new_attack["keywords"] = []
+
+            new_attack_group: int = 0
+            new_attack_critrange: int = 20
+            new_attack_critmultiplier: int = 2
 
             if system == "dnd5":
                 if len(attack) > 3:
-                    new_attack["group"] = attack[3]
-                else:
-                    new_attack["group"] = 0
+                    new_attack_group = int(attack[3])
 
-                new_attack["critrange"] = 20
-                new_attack["critmultiplier"] = 2
+                parse_advantage(initiative, 4, new_attack["keywords"])
             else:
                 if len(attack) > 3:
-                    new_attack["critrange"] = attack[3]
-                    new_attack["critmultiplier"] = attack[4]
-                else:
-                    new_attack["critrange"] = 20
-                    new_attack["critmultiplier"] = 2
+                    new_attack_critrange = int(attack[3])
+                    new_attack_critmultiplier = int(attack[4])
 
-                new_attack["group"] = 0
-            
+                parse_advantage(initiative, 5, new_attack["keywords"])
+
+            new_attack["group"] = new_attack_group
+            new_attack["critrange"] = new_attack_critrange
+            new_attack["critmultiplier"] = new_attack_critmultiplier
+
             self.attacks.append(new_attack)
 
     async def commit(self):
@@ -227,7 +250,7 @@ class Character:
             "system": self.system,
             "name": self.name,
             "portrait": self.portrait,
-            "initiative": str(self.initiative),
+            "initiative": self.initiative,
             "abilities": self.abilities,
             "saves": self.saves,
             "skills": self.skills,
@@ -244,7 +267,7 @@ class Character:
         character.system = dct["system"]
         character.name = dct["name"]
         character.portrait = dct["portrait"]
-        character.initiative = int(dct["initiative"])
+        character.initiative = dct["initiative"]
         character.abilities = dct["abilities"]
         character.saves = dct["saves"]
         character.skills = dct["skills"]
