@@ -57,6 +57,22 @@ def parse_advantage(keywords: list) -> int:
     return 0
 
 
+def get_article(noun: str) -> str:
+    noun = noun.lower()
+
+    if noun.startswith("the"):
+        return ""
+
+    if noun[0] in ["a", "e", "i", "o", "u"]:
+        return "an"
+
+    return "a"
+
+
+def with_article(noun: str) -> str:
+    return f"{get_article(noun)} {noun}"
+
+
 class Cog_NpcHelper_Dnd5e(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -183,7 +199,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         roll = d20.roll(dice)
 
         embed = discord.Embed()
-        embed.title = f"{character.name} makes a {check['name']} check!"
+        embed.title = f"{character.name} makes {with_article(check['name'])} check!"
         embed.description = str(roll)
         embed.color = 0x00ff00
 
@@ -225,7 +241,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         roll = d20.roll(dice)
 
         embed = discord.Embed()
-        embed.title = f"{character.name} makes a {save['name']} save!"
+        embed.title = f"{character.name} makes {with_article(save['name'])} save!"
         embed.description = str(roll)
         embed.color = 0x0000ff
 
@@ -292,7 +308,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
 
         if len(attack_list) == 1:
             attack = attack_list[0]
-            embed_title = f"{character.name} attacks with {attack['name']}!"
+            embed_title = f"{character.name} attacks with {with_article(attack['name'])}!"
             embed_description, critical_hit, critical_miss = await self.execute_attack_single(character, attack, keywords=keywords, switches=switches)
         else:
             embed_title = f"{character.name} executes a multi-attack!"
@@ -455,7 +471,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         if critical_hit:
             damage_critical = damage_roll.total * attack["critmultiplier"]
             attack_text += f"**Critical Damage**: `{str(damage_critical)}`\n"
-        
+
         for extra in extra_text:
             attack_text += f"\n{extra}"
 
