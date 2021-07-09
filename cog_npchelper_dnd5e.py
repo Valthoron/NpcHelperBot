@@ -83,7 +83,9 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         await context.send(f"Added {character.name} to channel.")
 
     @commands.command(name="npcremove")
-    async def remove(self, context: commands.Context, name: str):
+    async def remove(self, context: commands.Context, *, name):
+        print(name)
+
         character = await Character.get(self.characters, context.channel.id, name, exact=True)
 
         if character is None:
