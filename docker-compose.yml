@@ -3,7 +3,7 @@ version: "3.9"
 services:
     mongo:
         image: mongo
-        container_name: mongo
+        container_name: npchelper-mongo
         restart: always
         command: [--auth]
         environment:
@@ -20,8 +20,10 @@ services:
 
     mongo-express:
         image: mongo-express
-        container_name: mongo-express
+        container_name: npchelper-mongo-express
         restart: always
+        profiles:
+            - dev
         depends_on:
             - mongo
         environment:
