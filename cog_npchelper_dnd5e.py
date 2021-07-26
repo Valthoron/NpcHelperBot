@@ -185,6 +185,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
             await context.send(f"Error: Can't find check \"{check_name}\" for {character.name}.")
             return False
 
+        keywords = keywords.copy()
         keywords.extend(check["keywords"])
 
         advantage = parse_advantage(keywords)
@@ -227,6 +228,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
             await context.send(f"Error: Can't find save \"{save_name}\" for {character.name}.")
             return False
 
+        keywords = keywords.copy()
         keywords.extend(save["keywords"])
 
         advantage = parse_advantage(keywords)
@@ -263,6 +265,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return True
 
     async def execute_initiative(self, context, character: Character, keywords=[], switches={}):
+        keywords = keywords.copy()
         keywords.extend(character.initiative["keywords"])
 
         advantage = parse_advantage(keywords)
@@ -347,6 +350,7 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         return True
 
     async def execute_attack_single(self, character: Character, attack, include_name=False, keywords=[], switches={}):
+        keywords = keywords.copy()
         keywords.extend(attack["keywords"])
 
         if character.system == "dnd5":
