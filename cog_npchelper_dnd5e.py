@@ -375,10 +375,11 @@ class Cog_NpcHelper_Dnd5e(commands.Cog):
         critical_hit = False
         critical_miss = False
 
-        # Critical on a natural 20
-        if hit_roll.crit == d20.dice.CritType.CRIT:
+        # Critical if roll is a natural 20 or above threat threshold
+        d20_value = d20.utils.leftmost(hit_roll.expr).total
+        if (hit_roll.crit == d20.dice.CritType.CRIT) or (d20_value >= attack["critrange"]):
             critical_hit = True
-        elif hit_roll.crit == d20.dice.CritType.FAIL:
+        elif d20_value == 1:
             critical_miss = True
 
         # Roll for damage

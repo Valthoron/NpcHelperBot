@@ -18,6 +18,14 @@ def parse_advantage(cells: list, column: int, block: list):
             block.append("dis")
 
 
+def parse_optional_int(cells: list, column: int, default: int):
+    if len(cells) > column:
+        if cells[column] != "":
+            return int(cells[column])
+
+    return default
+
+
 class Character:
     def __init__(self):
         self._id = None
@@ -96,7 +104,7 @@ class Character:
 
         for attack in attacks:
             new_attack = {}
-            
+
             new_attack["name"] = attack[0]
             new_attack["hit"] = int(attack[1])
             new_attack["damage"] = attack[2]
@@ -107,14 +115,13 @@ class Character:
             new_attack_critmultiplier: int = 2
 
             if system == "dnd5":
-                if len(attack) > 3:
-                    new_attack_group = int(attack[3])
+                new_attack_group = parse_optional_int(attack, 3, new_attack_group)
+                new_attack_critrange = parse_optional_int(attack, 4, new_attack_critrange)
 
                 parse_advantage(initiative, 4, new_attack["keywords"])
             else:
-                if len(attack) > 3:
-                    new_attack_critrange = int(attack[3])
-                    new_attack_critmultiplier = int(attack[4])
+                new_attack_critrange = parse_optional_int(attack, 3, new_attack_critrange)
+                new_attack_critmultiplier = parse_optional_int(attack, 4, new_attack_critmultiplier)
 
                 parse_advantage(initiative, 5, new_attack["keywords"])
 
