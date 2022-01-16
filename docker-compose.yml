@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
     mongo:
-        image: mongo
+        image: mongo:4.4.11
         container_name: npchelper-mongo
         restart: always
         command: [--auth]
