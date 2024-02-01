@@ -77,7 +77,7 @@ class Character:
             new_ability["name"] = ability[0]
             new_ability["modifier"] = int(ability[2])
             new_ability["keywords"] = []
-            parse_advantage(initiative, 3, new_ability["keywords"])
+            parse_advantage(ability, 3, new_ability["keywords"])
             self.abilities.append(new_ability)
 
         for save in saves:
@@ -88,7 +88,7 @@ class Character:
             else:
                 new_save["modifier"] = int(save[3])
             new_save["keywords"] = []
-            parse_advantage(initiative, 3, new_save["keywords"])
+            parse_advantage(save, 3, new_save["keywords"])
             self.saves.append(new_save)
 
         for skill in skills:
@@ -99,7 +99,7 @@ class Character:
             else:
                 new_skill["modifier"] = int(skill[3])
             new_skill["keywords"] = []
-            parse_advantage(initiative, 3, new_skill["keywords"])
+            parse_advantage(skill, 3, new_skill["keywords"])
             self.skills.append(new_skill)
 
         for attack in attacks:
@@ -118,12 +118,12 @@ class Character:
                 new_attack_group = parse_optional_int(attack, 3, new_attack_group)
                 new_attack_critrange = parse_optional_int(attack, 4, new_attack_critrange)
 
-                parse_advantage(initiative, 4, new_attack["keywords"])
+                parse_advantage(attack, 4, new_attack["keywords"])
             else:
                 new_attack_critrange = parse_optional_int(attack, 3, new_attack_critrange)
                 new_attack_critmultiplier = parse_optional_int(attack, 4, new_attack_critmultiplier)
 
-                parse_advantage(initiative, 5, new_attack["keywords"])
+                parse_advantage(attack, 5, new_attack["keywords"])
 
                 if new_attack["name"].lower().endswith("[2h]"):
                     new_attack["name"] = new_attack["name"][:-4].strip()
